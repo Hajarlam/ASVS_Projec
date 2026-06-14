@@ -9,15 +9,6 @@ const BACKEND_URL = 'http://localhost:3000';
 // La clé Gemini peut être stockée dans localStorage sous "gemini_api_key" (client-side).
 // En SSR/Vercel: définir la variable d'environnement GEMINI_API_KEY (une ou plusieurs, séparées par |)
 // Exemple dans la console du navigateur : localStorage.setItem('gemini_api_key', 'xai-...');
-function getStaticApiKeys(): string[] {
-  if (typeof process !== 'undefined' && typeof process.env !== 'undefined') {
-    const envKey = process.env['GEMINI_API_KEY'] || process.env['NEXT_PUBLIC_GEMINI_API_KEY'] || '';
-    if (envKey) return envKey.split('|').map(k => k.trim()).filter(k => k);
-  }
-  return [];
-}
-
-const OPENAI_API_KEYS: string[] = getStaticApiKeys();
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface McpToolParameter {
@@ -49,10 +40,21 @@ export class AiService {
   }
 
   private get apiKeys(): string[] {
+    // Lecture dynamique des clés d'environnement
+    const envKeys: string[] = [];
+    if (typeof process !== 'undefined' && typeof process.env !== 'undefined') {
+      const envKey = process.env['GEMINI_API_KEY'] || process.env['NEXT_PUBLIC_GEMINI_API_KEY'] || '';
+      if (envKey) {
+        envKeys.push(...envKey.split('|').map(k => k.trim()).filter(k => k));
+      }
+    }
+    
+    // Lecture depuis localStorage (client-side)
     const browserKeys = this.isBrowser
       ? [localStorage.getItem('gemini_api_key') || '']
       : [];
-    return [...OPENAI_API_KEYS, ...browserKeys].map(k => String(k || '').trim()).filter(k => k);
+    
+    return [...envKeys, ...browserKeys].map(k => String(k || '').trim()).filter(k => k);
   }
 
   private async callGeminiApi(
@@ -157,7 +159,7 @@ export class AiService {
   ): Promise<any> {
     const keys = this.apiKeys;
     if (keys.length === 0) {
-      throw new Error('Aucune clé Gemini configurée. Ajoutez votre clé dans localStorage sous "gemini_api_key".');
+      throw new Error('Aucune clé Gemini configurée. Vercel: ajoutez GEMINI_API_KEY en env vars. Local: localStorage.setItem("gemini_api_key", "votre_clé").');
     }
 
     let lastError: any = null;
