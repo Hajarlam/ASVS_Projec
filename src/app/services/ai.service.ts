@@ -6,11 +6,18 @@ import { AuthService } from './auth.service';
 const BACKEND_URL = 'http://localhost:3000';
 
 // ─── API KEY ROTATION / LECTURE DYNAMIQUE ──────────────────────────────────────
-// La clé Gemini peut être stockée dans localStorage sous "gemini_api_key".
+// La clé Gemini peut être stockée dans localStorage sous "gemini_api_key" (client-side).
+// En SSR/Vercel: définir la variable d'environnement GEMINI_API_KEY (une ou plusieurs, séparées par |)
 // Exemple dans la console du navigateur : localStorage.setItem('gemini_api_key', 'xai-...');
-const OPENAI_API_KEYS: string[] = [
-  // Vous pouvez aussi ajouter des clés statiques ici si nécessaire.
-];
+function getStaticApiKeys(): string[] {
+  if (typeof process !== 'undefined' && typeof process.env !== 'undefined') {
+    const envKey = process.env['GEMINI_API_KEY'] || process.env['NEXT_PUBLIC_GEMINI_API_KEY'] || '';
+    if (envKey) return envKey.split('|').map(k => k.trim()).filter(k => k);
+  }
+  return [];
+}
+
+const OPENAI_API_KEYS: string[] = getStaticApiKeys();
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface McpToolParameter {
